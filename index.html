@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>CTF+Maths=SageMath</title>
+
+		<link rel="stylesheet" href="dist/reset.css">
+		<link rel="stylesheet" href="dist/reveal.css">
+		<link rel="stylesheet" href="dist/theme/white.css">
+
+		<!-- Theme used for syntax highlighted code -->
+		<link rel="stylesheet" href="plugin/highlight/monokai.css">
+        <style>
+            .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5 {
+                text-transform: none;
+            }
+            .reveal .footer {
+                position: absolute;
+                bottom: 1em;
+                left: 1em;
+                font-size: 0.5em;
+            }
+            .reveal pre code {
+                max-height: 1000px;
+            }
+        </style>
+	</head>
+	<body>
+		<div class="reveal">
+            <div class='footer'>
+                Slides available at versesrev.github.io/pwned4-slides
+            </div>
+			<div class="slides">
+				<section data-markdown data-separator-vertical="^\n--\n$">
+                    <script type="text/template">
+                        # CTF + Maths = SageMath
+                        
+                        esrever
+                        
+                        ---
+                        
+                        ## I will talk about
+                        * some SageMath code
+                        * some Maths behind the code
+                        * some numbers output by the code
+                        
+                        --
+                        
+                        ## I will NOT talk about
+                        * [Alice nor Bob](https://en.wikipedia.org/wiki/Alice_and_Bob)
+                        * [base64](https://twitter.com/LetsDefendIO/status/1583471423498035200/photo/1)
+                        * [cryptocurrency](https://www.cryptoisnotcryptocurrency.com/)
+                        
+                    </script>
+                </section>
+                
+                <section data-markdown data-separator-vertical="^\n--\n$">
+                    <script type="text/template">
+                        ## Modular arithmetic
+                        
+                        --
+                        
+                        * _In programming_: modulus operation `%`.
+                        * _In mathematics_: "reduced" numbers that can do `+, -, *, **`. Just like intergers, rational numbers and real numbers.
+                        
+                        --
+                        
+                        ### Example ([SageMathCell](https://sagecell.sagemath.org/?z=eJxLSU1TKEotyNEo1rRSKCjKzCvRSFOys7NTqC6ujcmrLk5MT41PLUsEydcqafJy8XKBVStpGBkoaCuYGGgqqCqYGoNkEOK6WMSBwloKJmiCJgpaWgrGaIKGCvoKZlAxACW4JYU=&lang=sage&interacts=eJyLjgUAARUAuQ==))
+                        ```python
+                        >>> (20 + 40) % 53
+                        7
+                        >>> (20 - 40) % 53
+                        33
+                        >>> 20 * 4 % 53
+                        27
+                        >>> 4 ** 3 % 53
+                        11
+                        >>> 1 / 6 % 53
+                        9
+                        >>> 
+                        ```
+                        
+                        ---
+                        
+                        ## Carmichael lambda
+                        
+                        --
+                        
+                        * The sequence $\\{a^i \pmod{n} \\}$ has repeated terms.
+                        * If $a$ coprime to $n$, the sequence contains 1 and becomes a cycle.
+                        * Carmichael function $\lambda(n)$: smallest period for all $a$ coprime to $n$.
+                        
+                        --
+                        
+                        ### Example
+                        ```python
+                        >>> n = 5**3 * 7**2
+                        >>> λ_n = lcm(4*5**2, 6*7**1); λ_n
+                        2100
+                        >>> pow(9, λ_n, n)
+                        1
+                        >>> pow(9, 1050, n)
+                        1
+                        >>> pow(9, 100*λ_n, n)
+                        1
+                        >>> 
+                        ```
+                        ```python
+                        >>> from sage.crypto.util import carmichael_lambda as λ
+                        >>> λ(n)
+                        2100
+                        >>> for a in range(n):
+                        ...     if gcd(a, n) == 1:
+                        ...         assert 1 == pow(a, λ(n), n)
+                        ... 
+                        >>> 
+                        ```
+                        
+                        --
+                        
+                        * Knowing $\lambda(n)$ is hard (without factorizing $n$).
+                        ```python
+                        >>> p = random_prime(2**1024)
+                        >>> q = random_prime(2**1024)
+                        >>> n = p * q
+                        >>> λ_n = lcm(p - 1, q - 1)
+                        >>> assert 1 == pow(2, λ_n, n)
+                        >>> # λ(n)  # This will take forever
+                        >>> 
+                        ```
+                        
+                        ---
+                        
+                        ## Textbook RSA
+                        
+                        --
+                        
+                        * Encryption: $c \equiv m ^ e \pmod{n}$
+                        * Decryption: $m \equiv c ^ d \pmod{n}$
+                        * $c ^ d \equiv m ^ {\textcolor{blue}{e \times d}} \equiv m ^ {\textcolor{blue}{k \times \lambda(n) + 1}} \equiv m \pmod{n}$
+                        
+                        --
+                        
+                        ### Example
+                        ```python
+                        >>> n = 101 * 107  # Public
+                        >>> e = 17  # Public
+                        >>> d = 4053  # Secret
+                        >>> assert 1 == e * d % λ(n)
+                        >>> 
+                        >>> enc = lambda pt: pow(pt, e, n)
+                        >>> dec = lambda ct: pow(ct, d, n)
+                        >>> assert 42 == dec(enc(42))
+                        >>> 
+                        ```
+                        ```python
+                        >>> mλ = 1337 * λ(n)  # Knowing a multiple is enough to decrypt
+                        >>> d = 1 / e % mλ
+                        >>> assert 42 == dec(enc(42))
+                        ```
+                        ```python
+                        >>> assert euler_phi(n) % λ(n) == 0  # That's why phi works
+                        >>> d = 1 / e % euler_phi(n)
+                        >>> assert 42 == dec(enc(42))
+                        >>> 
+                        ```
+                        
+                        ---
+                        
+                        ## Time-lock puzzle
+                        
+                        --
+                        
+                        * Squaring $t$ times:
+                          `\[ a ^ {2 ^ t} \pmod{n} \]`
+                        * LCS35: $|t|=47\text{ bits}, |n|=2048\text{ bits}$.
+                        
+                        --
+                        
+                        ### Example
+                        ```python
+                        >>> def naive(a, t, n):
+                        ...     return pow(a, 2**t, n)
+                        ... 
+                        >>> a = 3
+                        >>> n = 101 * 107
+                        >>> naive(a, 1, n)
+                        9
+                        >>> naive(a, 2, n)
+                        81
+                        >>> 
+                        ```
+                        ```python
+                        >>> time naive(a, 10**8, n)
+                        CPU times: user 1.56 s, sys: 15 ms, total: 1.58 s
+                        Wall time: 1.59 s
+                        5121
+                        >>> time naive(a, 10**9, n)
+                        CPU times: user 15.5 s, sys: 109 ms, total: 15.6 s
+                        Wall time: 15.7 s
+                        1384
+                        >>> 
+                        ```
+                        
+                        --
+                        
+                        ```python
+                        >>> def knowing_λ(a, t, n, λ):
+                        ...     return pow(a, pow(2, t, λ), n)
+                        ... 
+                        >>> λ_n = λ(n)
+                        >>> time knowing_λ(a, 10**9, n, λ_n)
+                        CPU times: user 0 ns, sys: 0 ns, total: 0 ns
+                        Wall time: 179 µs
+                        1384
+                        >>> time knowing_λ(a, 2**47, n, λ_n)
+                        CPU times: user 0 ns, sys: 0 ns, total: 0 ns
+                        Wall time: 563 µs
+                        4422
+                        >>> 
+                        ```
+                        
+                        ---
+                        
+                        ## (Weak) time-lock puzzle
+                        * Google CTF 2022 cycling ([link](https://github.com/google/google-ctf/tree/master/2022/quals/crypto-cycling)):
+                          `\[ \lambda(\lambda(n)) \mid 2^{1025} - 2 \]`
+                        
+                        --
+                        
+                        # Spoiler alert!
+                        
+                        --
+                        
+                        * $2^{1025} - 2$ is a special number: we know the factorization.
+                        * A prime factor of $\lambda(n)$ is either <!-- .element: class="fragment" data-fragment-index="2" -->
+                          1. a prime factor of $\lambda(\lambda(n))$ or
+                          1. a divisor of $\lambda(\lambda(n))$ plus one.  
+                          Example: $\lambda(5^3 \cdot 7^2) = \text{lcm}(4 \cdot 5^2, 6 \cdot 7^1)$.
+                        * We want to get a multiple of $\lambda(n)$.
+
+                        --
+                        
+                        ```python
+                        λλn = 2**1025 - 2
+                        
+                        # Case 1
+                        λn_potential_factors = set(factor(λλn))  # TODO: help Sage factor
+                        
+                        # Case 2
+                        for d in divisor(λλn):  # TODO: help Sage find divisors
+                            if is_prime(d + 1):
+                                λn_potential_factors.add(d + 1)
+                        
+                        # Get multiple of λ(n)
+                        mλn = prod(p ** e for p in λn_potential_factors)  # TODO: choose e
+                        
+                        # Win!
+                        knowing_λ(a, t, n, mλn)
+                        ```
+                        
+                        --
+                        
+                        ### TODO: Factorize $2^{1025} - 2$
+                        * $2^{1024} - 1$ is a Mersenne number.
+                        * http://factordb.com/
+                          ![](./factordb.png)
+                        
+                        --
+                        
+                        ### TODO: Find all divisors of $2^{1025} - 2$
+                        * It has 17 prime factors. All have multiplicity 1.
+                        ```python
+                        # From the itertools documentation/example
+                        from itertools.chain import from_iterable
+                        from itertools import combinations
+                        def powerset(iterable):
+                              """powerset([1,2,3]) --> () (1,) (2,) (3,)
+                                                  (1,2) (1,3) (2,3) (1,2,3)"""
+                              s = list(iterable)
+                              return from_iterable(
+                                  combinations(s, r) for r in range(len(s)+1)
+                              )
+                        for primes in powerset(factors):
+                              d = prod(primes)
+                              # Do something with d
+                        ```
+                        
+                        --
+                        
+                        ### TODO: Choose multiplicity for each potential factor
+                        * $e = 1$ works for this particular challenge.
+                        * $e = \lceil \log{n} / \log{p} \rceil$ should work.
+                        
+                        --
+                        
+                        ### Putting together
+                        ```python
+                        λλn = 2**1025 - 2
+                        factors = [...]
+                        assert λλn == prod(factors)
+                        
+                        # Case 1
+                        λn_potential_factors = set(factors)
+                        
+                        # Case 2
+                        for primes in powerset(factors):
+                            d = prod(primes)
+                            if is_prime(d + 1):
+                                λn_potential_factors.add(d + 1)
+                        
+                        # Get multiple of λ(n)
+                        mλn = prod(λn_potential_factors)
+                        
+                        # Win!
+                        knowing_λ(a, t, n, mλn)
+                        ```
+                        
+                    </script>
+                </section>
+                
+                <section data-markdown data-separator-vertical="^\n--\n$">
+                    <script type="text/template">
+                        # Thank you!
+                    </script>
+                </section>
+			</div>
+		</div>
+
+		<script src="dist/reveal.js"></script>
+		<script src="plugin/notes/notes.js"></script>
+		<script src="plugin/markdown/markdown.js"></script>
+		<script src="plugin/highlight/highlight.js"></script>
+        <script src="plugin/math/math.js"></script>
+		<script>
+			// More info about initialization & config:
+			// - https://revealjs.com/initialization/
+			// - https://revealjs.com/config/
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+                slideNumber: true,
+
+				// Learn about plugins: https://revealjs.com/plugins/
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes, RevealMath.KaTeX ]
+			});
+		</script>
+	</body>
+</html>
