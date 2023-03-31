@@ -94,21 +94,21 @@
                         
                         --
                         
-                        ### Example
+                        ### [Example](https://sagecell.sagemath.org/?z=eJxlj01qwzAQhfcG3-HhlSRMsJP-0IB9kbaYiS07Av0YybSLNCfrHXqmSk7bBDobSfPmffM0yBFezpoFvsfslV3YWLRti1M4v9hToEl28o2iXkK7nnRoLgfj-MCk3WG983PB8yzPLBrcC7GDwKMQ2zxb2cXz7N7Z025bQpW3OsfoPBSUhSc7SVZX_DWRvj67hNK9YXciGqLzQURHzX-RaaL4e638EqlZwvJ_Ql1V4lbMs9E7g_S9DXm1HDdGhR7KzM4v6Mkb1R9J6k6TOQwECpF9Xc0ulBSeruEt3-cZYqkRUz8wStvQNKh_-qkoBBlX1KmfwlFKHa1p9hvbdXQX&lang=sage&interacts=eJyLjgUAARUAuQ==)
                         ```python
                         >>> n = 5**3 * 7**2
+                        >>> [pow(932, i, n) for i in range(10)]
+                        [1, 932, 4999, 4068, 1, 932, 4999, 4068, 1, 932]
                         >>> λ_n = lcm(4*5**2, 6*7**1); λ_n
                         2100
                         >>> pow(9, λ_n, n)
-                        1
-                        >>> pow(9, 1050, n)
                         1
                         >>> pow(9, 100*λ_n, n)
                         1
                         >>> 
                         ```
                         ```python
-                        >>> from sage.crypto.util import carmichael_lambda as λ
+                        >>> from sage.arith.misc import carmichael_lambda as λ
                         >>> λ(n)
                         2100
                         >>> for a in range(n):
@@ -143,7 +143,7 @@
                         
                         --
                         
-                        ### Example
+                        ### [Example](https://sagecell.sagemath.org/?z=eJx9kE1qwzAQRvcG3-GDEuqUkMaxS6DgE3RTaPdBkSeWqP6QZEzOljvkTJUSL5JNNlrMN_PejI7eagQ20Jp5GcVay8AhtbM-gjOvJReM1F4xfegZWMDlXBZlYdCh3tR4S-8OeMH3eFCSlwXl4KHSp0q7-Why7Ye4p1gWLARKghpdB0qQHosErswys8nwNDIbXfyEs1Pl4gq0Qu7o6S7nc85T3t_yGd5uMz01VwlYtdvlFa4v57xh0-yS9qrMe30ZO0kzgEGPKkqnCDKAjB0HgWgzxZ9cvB1T4z0tvYDOX_FUNoc0KvJ7J2S2zYfm9k1W_woWXwMmcULqwGT9X3j03I8_Ef4DDfyGJg==&lang=sage&interacts=eJyLjgUAARUAuQ==)
                         ```python
                         >>> n = 101 * 107  # Public
                         >>> e = 17  # Public
@@ -179,7 +179,7 @@
                         
                         --
                         
-                        ### Example
+                        ### [Example](https://sagecell.sagemath.org/?z=eJyVUN1qgzAUvhd8hw93Y4KUagfdCi3sHXY5kFSjhsVEEm0vuj5Z38FnWmKxrOwHlouccL6f852UvILhnYwt2aAzQvVxFe12O5zs-U2dLKt5zg_M4QmkLpi022uJCT5QS72f3uQcJajkYJvtqxk4CYMwqIxu4Q0WzIi-WbTCFhBtp02PgplWFA3jMpes3ZcMzGK8eFnpEikmDjxmCfoEimzCAO4Y3g9GodNHj2SUTqCXMGyxCgPlSrpMQd29DoNprehmlXp2RL71s1_66ZLSpz-w5xm7Rn5X-ihUnY-XOXfiFvo5uy_ZRHKMeYnxkvsFnF7dBt6bzlO9LP-a657mfuZx_R9aulqt6cQFHvCCdpC96CSHrpwFhAVXeqibiHwCnyypyw==&lang=sage&interacts=eJyLjgUAARUAuQ==)
                         ```python
                         >>> def naive(a, t, n):
                         ...     return pow(a, 2**t, n)
@@ -219,14 +219,17 @@
                         CPU times: user 0 ns, sys: 0 ns, total: 0 ns
                         Wall time: 563 µs
                         4422
-                        >>> 
+                        >>> knowing_λ(a, 2**47, n, 1337*λ_n)  # A multiple of λ is enough
+                        4422
                         ```
                         
                         ---
                         
                         ## (Weak) time-lock puzzle
-                        * Google CTF 2022 cycling ([link](https://github.com/google/google-ctf/tree/master/2022/quals/crypto-cycling)):
+                        * [Google CTF 2022 cycling](https://github.com/google/google-ctf/tree/master/2022/quals/crypto-cycling):
                           `\[ \lambda(\lambda(n)) \mid 2^{1025} - 2 \]`
+                        In other words, for $t = 2^{1025} - 2$ and most $a, b$,
+                          `\[ a ^ {b ^ t} \equiv a \pmod{n}\ . \]`
                         
                         --
                         
@@ -234,12 +237,12 @@
                         
                         --
                         
-                        * $2^{1025} - 2$ is a special number: we know the factorization.
-                        * A prime factor of $\lambda(n)$ is either <!-- .element: class="fragment" data-fragment-index="2" -->
-                          1. a prime factor of $\lambda(\lambda(n))$ or
-                          1. a divisor of $\lambda(\lambda(n))$ plus one.  
-                          Example: $\lambda(5^3 \cdot 7^2) = \text{lcm}(4 \cdot 5^2, 6 \cdot 7^1)$.
-                        * We want to get a multiple of $\lambda(n)$.
+                        * We want to get a multiple of $\textcolor{red}{\lambda(n)}$.
+                        * A prime factor of $\textcolor{red}{\lambda(n)}$ is either <!-- .element: class="fragment" data-fragment-index="2" -->
+                          1. a prime factor of $\textcolor{blue}{\lambda(\lambda(n))}$ or
+                          1. a divisor of $\textcolor{blue}{\lambda(\lambda(n))}$ plus one.  
+                          Example: $\lambda(\textcolor{red}{5^3 \cdot 7^1}) = \textcolor{blue}{\text{lcm}(4 \cdot 5^2, 6 \cdot 7^0)}$.
+                        * $\textcolor{blue}{2^{1025} - 2}$ is a special number: we know the factorization.
 
                         --
                         
